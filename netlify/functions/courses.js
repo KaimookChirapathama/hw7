@@ -156,17 +156,14 @@ exports.handler = async function (event) {
   
   // create the loop through overall reviews 
   for (let reviewIndex2 = 0; reviewIndex2 < reviewsTotal.length; reviewIndex2++) {
-  let reviewsRating = reviewsTotal[reviewIndex2].rating
+  let reviewsRating = reviewsTotal[reviewIndex2].data()
   // console.log(reviewsTotal[0].rating)
 
-  sumObjectTotal = sumObjectTotal + reviewsRating
+  sumObjectTotal = sumObjectTotal + reviewsRating.rating
   // console.log(sumObjectTotal)
 
-  // find overall average
-  let overallRating = sumObjectTotal/reviewsTotal.length
-
-  // push average score to the return value
-  returnValue.averageRating.push(overallRating)
+  // add the average score to the return value
+  returnValue.averageRating = sumObjectTotal / reviewsTotal.length
   }
 
   // return the standard response
