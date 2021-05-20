@@ -63,7 +63,8 @@ exports.handler = async function (event) {
     courseNumber: courseData.courseNumber,
     name: courseData.name,
     sectionDetails: [],
-    reviewDatails: []
+    totalReview: [],
+    averageRating: []
   }
 
   // // set a new Array as part of the return value
@@ -102,10 +103,10 @@ exports.handler = async function (event) {
     // ask Firebase for reviews corresponding with the section ID
     let reviewQuery = await db.collection(`reviews`).where(`sectionId`, `==`, sectionId).get()
 
-    // get the date from the returned document
+    // get the data from the returned document
     let reviews = reviewQuery.docs
 
-    // create object for the reviews details
+    // create the starting point for review rating addition
     let sumObject = 0
 
     // create empty array for reviews 
@@ -139,6 +140,33 @@ exports.handler = async function (event) {
       // add the reviews to the return value
       returnValue.sectionDetails[sectionIndex].reviews.push(reviewObject)
     }
+  }
+  // ask Firebase for total range of reviews
+  let reviewsTotalQuery = await db.collection(`reviews`).get()
+
+  let reviewsTotal = reviewsTotalQuery.docs
+  console.log(reviewsTotal[0])
+  
+  // push the total number of reviewes to the return value
+  returnValue.totalReview.push(reviewsTotal.length)
+
+  // add the average rating for the overall course to the return value
+  // start new sumObject for total rating score
+  let sumObjectTotal = 0
+  
+  // create the loop through overall reviews 
+  for (let reviewIndex2 = 0; reviewIndex2 < reviewsTotal.length; reviewIndex2++) {
+  let reviewsRating = reviewsTotal[reviewIndex2].rating
+  // console.log(reviewsTotal[0].rating)
+
+  sumObjectTotal = sumObjectTotal + reviewsRating
+  // console.log(sumObjectTotal)
+
+  // find overall average
+  let overallRating = sumObjectTotal/reviewsTotal.length
+
+  // push average score to the return value
+  returnValue.averageRating.push(overallRating)
   }
 
   // return the standard response
