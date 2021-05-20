@@ -35,10 +35,11 @@
 let firebase = require(`./firebase`)
 
 // /.netlify/functions/courses?courseNumber=KIEI-451
-exports.handler = async function(event) {
+exports.handler = async function (event) {
 
   // get the course number being requested
   let courseNumber = event.queryStringParameters.courseNumber
+  console.log(courseNumber)
 
   // establish a connection to firebase in memory
   let db = firebase.firestore()
@@ -48,9 +49,11 @@ exports.handler = async function(event) {
 
   // get the first document from the query
   let course = courseQuery.docs[0]
+  // console.log(course)
 
   // get the id from the document
   let courseId = course.id
+  // console.log(courseId)
 
   // get the data from the document
   let courseData = course.data()
@@ -58,11 +61,13 @@ exports.handler = async function(event) {
   // create an object with the course data to hold the return value from our lambda
   let returnValue = {
     courseNumber: courseData.courseNumber,
-    name: courseData.name
+    name: courseData.name,
+    sectionDetails: [],
+    reviewDatails: []
   }
 
-  // set a new Array as part of the return value
-  returnValue.sections = []
+  // // set a new Array as part of the return value
+  // returnValue.sections = []
 
   // ask Firebase for the sections corresponding to the Document ID of the course, wait for the response
   let sectionsQuery = await db.collection('sections').where(`courseId`, `==`, courseId).get()
@@ -71,13 +76,13 @@ exports.handler = async function(event) {
   let sections = sectionsQuery.docs
 
   // loop through the documents
-  for (let i=0; i < sections.length; i++) {
+  for (let sectionIndex = 0; sectionIndex < sections.length; sectionIndex++) {
     // get the document ID of the section
-    let sectionId = sections[i].id
+    let sectionId = sections[sectionIndex].id
 
     // get the data from the section
-    let sectionData = sections[i].data()
-    
+    let sectionData = sections[sectionIndex].data()
+
     // create an Object to be added to the return value of our lambda
     let sectionObject = {}
 
@@ -91,9 +96,49 @@ exports.handler = async function(event) {
     sectionObject.lecturerName = lecturer.name
 
     // add the section Object to the return value
-    returnValue.sections.push(sectionObject)
+    returnValue.sectionDetails.push(sectionObject)
 
     // 🔥 your code for the reviews/ratings goes here
+    // ask Firebase for reviews corresponding with the section ID
+    let reviewQuery = await db.collection(`reviews`).where(`sectionId`, `==`, sectionId).get()
+
+    // get the date from the returned document
+    let reviews = reviewQuery.docs
+
+    // create object for the reviews details
+    let sumObject = 0
+
+    // create empty array for reviews 
+    returnValue.sectionDetails[sectionIndex].reviews = []
+
+    // create a loop through the reviews
+    for (let reviewIndex = 0; reviewIndex < reviews.length; reviewIndex++) {
+      
+      // create empty object for the reviews
+      let reviewObject = {}
+      // console.log(reviewObject)
+
+      // get the reviewId from the section we selected above
+      let reviewId = reviews[reviewIndex].id
+
+      // get the review data
+      let reviewData = reviews[reviewIndex].data()
+      // console.log(reviewData)
+
+      // add the review and review count to the review Object
+      reviewObject.reviewComment = reviewData.comment
+      reviewObject.reviewRating = reviewData.rating
+      returnValue.sectionDetails[sectionIndex].reviewCount = reviews.length
+
+      sumObject = sumObject + reviewData.rating
+      // console.log(sumObject)
+
+      // average the ratings
+      returnValue.sectionDetails[sectionIndex].averageRating = sumObject / reviews.length
+
+      // add the reviews to the return value
+      returnValue.sectionDetails[sectionIndex].reviews.push(reviewObject)
+    }
   }
 
   // return the standard response
